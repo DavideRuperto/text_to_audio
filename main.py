@@ -50,25 +50,25 @@ def split_text(text, max_len):
     return chunks
 
 # --- ESTRAZIONE DEL TESTO DAL PDF ---
-def read_file(pdf_files):
+def read_file(file):
     completed_text = ''
-    for file in pdf_files:
-        with pdfplumber.open(file) as pdf:
-            for page in pdf.pages:
-                text = page.extract_text()
-                lines = text.split('\n')
 
-                # Rimuove numeri di pagina
-                cleaned_lines = [
-                    line for line in lines
-                    if not re.match(r'^(page\s*)?\d+(\s*/\s*\d+)?$', line.strip(), re.IGNORECASE)
-                ]
+    with pdfplumber.open(file) as pdf:
+        for page in pdf.pages:
+            text = page.extract_text()
+            lines = text.split('\n')
 
-                # Rimuove note tipo [1]
-                cleaned_text = '\n'.join(cleaned_lines)
-                cleaned_text = re.sub(r'\[\d+\]', '', cleaned_text)
+            # Rimuove numeri di pagina
+            cleaned_lines = [
+                line for line in lines
+                if not re.match(r'^(page\s*)?\d+(\s*/\s*\d+)?$', line.strip(), re.IGNORECASE)
+            ]
 
-                completed_text += cleaned_text + '\n\n'
+            # Rimuove note tipo [1]
+            cleaned_text = '\n'.join(cleaned_lines)
+            cleaned_text = re.sub(r'\[\d+\]', '', cleaned_text)
+
+            completed_text += cleaned_text + '\n\n'
 
     return completed_text
 
@@ -159,16 +159,17 @@ def main():
             return
         
         print("📄 Estrazione e pulizia del testo...")
-        text = read_file(pdf_files)
-        text = normalize_text(text)
-        text = format_titles(text)
+        for file in pdf_files:
+            text = read_file(file)
+            text = normalize_text(text)
+            text = format_titles(text)
 
-        chunks = split_text(text, max_len=3000)
+            chunks = split_text(text, max_len=3000)
 
-        print(f"📝 Numero di caratteri: {len(text)}")
-        print(f"📚 Numero di blocchi: {len(chunks)}")
+            print(f"📝 Numero di caratteri: {len(text)}")
+            print(f"📚 Numero di blocchi: {len(chunks)}")
 
-        asyncio.run(text_to_speech_edge_tts(chunks, output_dir))
+            asyncio.run(text_to_speech_edge_tts(chunks, output_dir, file_name=file.stem))
 
     print("\n🎉 Sintesi vocale completata con successo!")
 
